@@ -1,0 +1,84 @@
+services:
+  # --- Databases ---
+  postgres-seo:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${SEO_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${SEO_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${SEO_POSTGRES_DB:-seo_tracker}
+    ports:
+      - "${SEO_POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata-seo:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SEO_POSTGRES_USER:-postgres} -d ${SEO_POSTGRES_DB:-seo_tracker}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  postgres-pm:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${PM_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${PM_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${PM_POSTGRES_DB:-pain_miner}
+    ports:
+      - "${PM_POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - pgdata-pm:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PM_POSTGRES_USER:-postgres} -d ${PM_POSTGRES_DB:-pain_miner}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  redis-seo:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${SEO_REDIS_PORT:-6379}:6379"
+    volumes:
+      - redisdata-seo:/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+
+  redis-pm:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${PM_REDIS_PORT:-6380}:6379"
+    volumes:
+      - redisdata-pm:/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+
+volumes:
+  pgdata-seo:
+  pgdata-pm:
+  redisdata-seo:
+  redisdata-pm:
+
+networks:
+  backend:
